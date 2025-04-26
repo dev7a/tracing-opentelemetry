@@ -1,5 +1,10 @@
 use crate::layer::WithContext;
-use opentelemetry::{trace::SpanContext, trace::Status, Context, Key, KeyValue, Value};
+use opentelemetry::{
+    time,
+    trace::{SpanContext, Status},
+    Context, Key, KeyValue, Value,
+};
+use std::{borrow::Cow, time::SystemTime};
 
 /// Utility functions to allow tracing [`Span`]s to accept and return
 /// [OpenTelemetry] [`Context`]s.
@@ -152,6 +157,63 @@ pub trait OpenTelemetrySpanExt {
     /// app_root.set_status(Status::Ok);
     /// ```            
     fn set_status(&self, status: Status);
+
+    /// Adds an OpenTelemetry event directly to this span, bypassing `tracing::event!`.
+    /// This allows for adding events with dynamic attribute keys, similar to `set_attribute` for span attributes.
+    /// Events are added with the current timestamp.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use opentelemetry::{KeyValue};
+    /// use tracing_opentelemetry::OpenTelemetrySpanExt;
+    /// use tracing::Span;
+    ///
+    /// let app_root = tracing::span!(tracing::Level::INFO, "processing_request");
+    ///
+    /// let dynamic_attrs = vec![
+    ///     KeyValue::new("job_id", "job-123"),
+    ///     KeyValue::new("user.id", "user-xyz"),
+    /// ];
+    ///
+    /// // Add event using the extension method
+    /// app_root.add_otel_span_event("job_started".to_string(), dynamic_attrs);
+    ///
+    /// // ... perform work ...
+    ///
+    /// app_root.add_otel_span_event("job_completed", vec![KeyValue::new("status", "success")]);
+    /// ```
+    fn add_otel_span_event<T>(&self, name: T, attributes: Vec<KeyValue>)
+    where
+        T: Into<Cow<'static, str>>;
+
+    /// Adds an OpenTelemetry event with a specific timestamp directly to this span.
+    /// Similar to `add_otel_span_event`, but allows overriding the event timestamp.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use opentelemetry::{KeyValue};
+    /// use tracing_opentelemetry::OpenTelemetrySpanExt;
+    /// use tracing::Span;
+    /// use std::time::{Duration, SystemTime};
+    /// use std::borrow::Cow;
+    ///
+    /// let app_root = tracing::span!(tracing::Level::INFO, "historical_event_processing");
+    ///
+    /// let event_time = SystemTime::now() - Duration::from_secs(60);
+    /// let event_attrs = vec![KeyValue::new("record_id", "rec-456")];
+    /// let event_name: Cow<'static, str> = "event_from_past".into();
+    ///
+    /// app_root.add_otel_span_event_with_timestamp(event_name, event_time, event_attrs);
+    /// ```
+    fn add_otel_span_event_with_timestamp<T>(
+        &self,
+        name: T,
+        timestamp: SystemTime,
+        attributes: Vec<KeyValue>,
+    ) where
+        T: Into<Cow<'static, str>>;
 }
 
 impl OpenTelemetrySpanExt for tracing::Span {
@@ -233,6 +295,35 @@ impl OpenTelemetrySpanExt for tracing::Span {
             if let Some(get_context) = subscriber.downcast_ref::<WithContext>() {
                 get_context.with_context(subscriber, id, move |builder, _| {
                     builder.builder.status = status.take().unwrap();
+                });
+            }
+        });
+    }
+
+    fn add_otel_span_event<T>(&self, name: T, attributes: Vec<KeyValue>)
+    where
+        T: Into<Cow<'static, str>>,
+    {
+        self.add_otel_span_event_with_timestamp(name, time::now(), attributes);
+    }
+
+    fn add_otel_span_event_with_timestamp<T>(
+        &self,
+        name: T,
+        timestamp: SystemTime,
+        attributes: Vec<KeyValue>,
+    ) where
+        T: Into<Cow<'static, str>>,
+    {
+        self.with_subscriber(move |(id, subscriber)| {
+            let mut event = Some(opentelemetry::trace::Event::new(
+                name, timestamp, attributes, 0,
+            ));
+            if let Some(get_context) = subscriber.downcast_ref::<WithContext>() {
+                get_context.with_context(subscriber, id, move |data, _tracer| {
+                    if let Some(event) = event.take() {
+                        data.builder.events.get_or_insert_with(Vec::new).push(event);
+                    }
                 });
             }
         });
