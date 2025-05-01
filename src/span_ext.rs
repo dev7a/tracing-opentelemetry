@@ -183,9 +183,7 @@ pub trait OpenTelemetrySpanExt {
     ///
     /// app_root.add_event("job_completed", vec![KeyValue::new("status", "success")]);
     /// ```
-    fn add_event<T>(&self, name: T, attributes: Vec<KeyValue>)
-    where
-        T: Into<Cow<'static, str>>;
+    fn add_event(&self, name: impl Into<Cow<'static, str>>, attributes: Vec<KeyValue>);
 
     /// Adds an OpenTelemetry event with a specific timestamp directly to this span.
     /// Similar to `add_event`, but allows overriding the event timestamp.
@@ -207,13 +205,12 @@ pub trait OpenTelemetrySpanExt {
     ///
     /// app_root.add_event_with_timestamp(event_name, event_time, event_attrs);
     /// ```
-    fn add_event_with_timestamp<T>(
+    fn add_event_with_timestamp(
         &self,
-        name: T,
+        name: impl Into<Cow<'static, str>>,
         timestamp: SystemTime,
         attributes: Vec<KeyValue>,
-    ) where
-        T: Into<Cow<'static, str>>;
+    );
 }
 
 impl OpenTelemetrySpanExt for tracing::Span {
@@ -307,17 +304,16 @@ impl OpenTelemetrySpanExt for tracing::Span {
         });
     }
 
-    fn add_event<T>(&self, name: T, attributes: Vec<KeyValue>)
-    where
-        T: Into<Cow<'static, str>>,
-    {
+    fn add_event(&self, name: impl Into<Cow<'static, str>>, attributes: Vec<KeyValue>) {
         self.add_event_with_timestamp(name, time::now(), attributes);
     }
 
-    fn add_event_with_timestamp<T>(&self, name: T, timestamp: SystemTime, attributes: Vec<KeyValue>)
-    where
-        T: Into<Cow<'static, str>>,
-    {
+    fn add_event_with_timestamp(
+        &self,
+        name: impl Into<Cow<'static, str>>,
+        timestamp: SystemTime,
+        attributes: Vec<KeyValue>,
+    ) {
         self.with_subscriber(move |(id, subscriber)| {
             let mut event = Some(opentelemetry::trace::Event::new(
                 name, timestamp, attributes, 0,
