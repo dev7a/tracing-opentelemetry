@@ -2,11 +2,9 @@
 
 ### Added
 
-- Add `OpenTelemetrySpanExt::add_otel_span_event` function to allow adding OpenTelemetry
-  events directly to a `tracing::Span`, enabling the use of dynamic attribute keys.
-- Add `OpenTelemetrySpanExt::add_otel_span_event_with_timestamp` function, similar to
-  `add_otel_span_event`, but allowing a specific `SystemTime` to be provided for the event.
-- Add `examples/opentelemetry-span-event.rs` demonstrating the usage of the new span event methods.
+- Add `OpenTelemetrySpanExt::add_event` and `OpenTelemetrySpanExt::add_event_with_timestamp` 
+  functions to allow adding OpenTelemetry events directly to a `tracing::Span`, enabling the use of dynamic attribute keys 
+  and custom event timestamps.
 
 # 0.30.0 (March 23, 2025)
 

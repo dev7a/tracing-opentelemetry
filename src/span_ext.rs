@@ -177,18 +177,18 @@ pub trait OpenTelemetrySpanExt {
     /// ];
     ///
     /// // Add event using the extension method
-    /// app_root.add_otel_span_event("job_started".to_string(), dynamic_attrs);
+    /// app_root.add_event("job_started".to_string(), dynamic_attrs);
     ///
     /// // ... perform work ...
     ///
-    /// app_root.add_otel_span_event("job_completed", vec![KeyValue::new("status", "success")]);
+    /// app_root.add_event("job_completed", vec![KeyValue::new("status", "success")]);
     /// ```
-    fn add_otel_span_event<T>(&self, name: T, attributes: Vec<KeyValue>)
+    fn add_event<T>(&self, name: T, attributes: Vec<KeyValue>)
     where
         T: Into<Cow<'static, str>>;
 
     /// Adds an OpenTelemetry event with a specific timestamp directly to this span.
-    /// Similar to `add_otel_span_event`, but allows overriding the event timestamp.
+    /// Similar to `add_event`, but allows overriding the event timestamp.
     ///
     /// # Examples
     ///
@@ -205,9 +205,9 @@ pub trait OpenTelemetrySpanExt {
     /// let event_attrs = vec![KeyValue::new("record_id", "rec-456")];
     /// let event_name: Cow<'static, str> = "event_from_past".into();
     ///
-    /// app_root.add_otel_span_event_with_timestamp(event_name, event_time, event_attrs);
+    /// app_root.add_event_with_timestamp(event_name, event_time, event_attrs);
     /// ```
-    fn add_otel_span_event_with_timestamp<T>(
+    fn add_event_with_timestamp<T>(
         &self,
         name: T,
         timestamp: SystemTime,
@@ -307,19 +307,15 @@ impl OpenTelemetrySpanExt for tracing::Span {
         });
     }
 
-    fn add_otel_span_event<T>(&self, name: T, attributes: Vec<KeyValue>)
+    fn add_event<T>(&self, name: T, attributes: Vec<KeyValue>)
     where
         T: Into<Cow<'static, str>>,
     {
-        self.add_otel_span_event_with_timestamp(name, time::now(), attributes);
+        self.add_event_with_timestamp(name, time::now(), attributes);
     }
 
-    fn add_otel_span_event_with_timestamp<T>(
-        &self,
-        name: T,
-        timestamp: SystemTime,
-        attributes: Vec<KeyValue>,
-    ) where
+    fn add_event_with_timestamp<T>(&self, name: T, timestamp: SystemTime, attributes: Vec<KeyValue>)
+    where
         T: Into<Cow<'static, str>>,
     {
         self.with_subscriber(move |(id, subscriber)| {

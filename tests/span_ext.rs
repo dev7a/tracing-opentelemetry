@@ -73,7 +73,7 @@ fn set_status_helper(status: Status) -> SpanData {
 }
 
 #[test]
-fn test_add_otel_span_event() {
+fn test_add_event() {
     let (_tracer, provider, exporter, subscriber) = test_tracer();
 
     let event_name = "my_event";
@@ -87,7 +87,7 @@ fn test_add_otel_span_event() {
         let _enter = root.enter(); // Enter span to make it current for the event addition
 
         // Add the event using the new extension method
-        root.add_otel_span_event(event_name, event_attrs.clone());
+        root.add_event(event_name, event_attrs.clone());
     });
 
     drop(provider); // flush all spans
@@ -111,7 +111,7 @@ fn test_add_otel_span_event() {
 }
 
 #[test]
-fn test_add_otel_span_event_with_timestamp() {
+fn test_add_event_with_timestamp() {
     use std::time::{Duration, SystemTime};
 
     let (_tracer, provider, exporter, subscriber) = test_tracer();
@@ -126,11 +126,7 @@ fn test_add_otel_span_event_with_timestamp() {
         let _enter = root.enter();
 
         // Add the event using the new extension method with the specific timestamp
-        root.add_otel_span_event_with_timestamp(
-            event_name,
-            specific_timestamp,
-            event_attrs.clone(),
-        );
+        root.add_event_with_timestamp(event_name, specific_timestamp, event_attrs.clone());
     });
 
     drop(provider); // flush all spans

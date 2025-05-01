@@ -45,7 +45,7 @@ The crate provides the following types:
   injected and extracted from a `tracing` [span]. It also provides methods
   to directly set span attributes (`set_attribute`), span status (`set_status`),
   and add OpenTelemetry events with dynamic attributes using the current time
-  (`add_otel_span_event`) or a specific timestamp (`add_otel_span_event_with_timestamp`).
+  (`add_event`) or a specific timestamp (`add_event_with_timestamp`).
 
 [`OpenTelemetryLayer`]: https://docs.rs/tracing-opentelemetry/latest/tracing_opentelemetry/struct.OpenTelemetryLayer.html
 [`OpenTelemetrySpanExt`]: https://docs.rs/tracing-opentelemetry/latest/tracing_opentelemetry/trait.OpenTelemetrySpanExt.html
